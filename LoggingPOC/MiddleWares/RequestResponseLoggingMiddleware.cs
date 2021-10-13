@@ -21,7 +21,7 @@ namespace LoggingPOC.MiddleWares
         private readonly RequestDelegate _next;
         private readonly IConfiguration _configuration;
         private readonly ILogger Log = Serilog.Log.ForContext<RequestResponseLoggingMiddleware>();
-        const string MessageTemplate = "HTTP {RequestMethod} {QueryParameters} {RequestPath} {RequestId} {RequestBody} responded {ResponseBody} {StatusCode} in {Elapsed:0.0000} ms";
+        const string MessageTemplate = "HTTP {RequestMethod} {RequestHeaders} {QueryParameters} {RequestPath} {RequestId} {RequestBody} responded {ResponseBody} {StatusCode} in {Elapsed:0.0000} ms";
 
 
         public RequestResponseLoggingMiddleware(RequestDelegate next, IConfiguration configuration)
@@ -37,7 +37,7 @@ namespace LoggingPOC.MiddleWares
                 var auth = context.Request.Headers[HeaderNames.Authorization];
                 // Push the user name into the log context so that it is included in all log entries
                 var queryParameters = context.Request.QueryString;
-                //var requestHeaders = context.Request.Headers;
+                var requestHeaders = context.Request.Headers;
                 if (!string.IsNullOrEmpty(serviceId))
                 {
                     LogContext.PushProperty("ServiceId", serviceId);
@@ -65,7 +65,7 @@ namespace LoggingPOC.MiddleWares
                 var level = statusCode > 499 ? LogEventLevel.Error : LogEventLevel.Information;
                 var log = level == LogEventLevel.Error ? LogForErrorContext(context) : Log;
 
-                log.Write(level, MessageTemplate, context.Request.Method/*,requestHeaders*/, queryParameters, context.Request.Path.ToString(), Guid.NewGuid(),
+                log.Write(level, MessageTemplate, context.Request.Method,requestHeaders, queryParameters, context.Request.Path.ToString(), Guid.NewGuid(),
                          request, response, statusCode, elapsedMs);
                 //Copy the contents of the new memory stream (which contains the response) to the original stream, which is then returned to the client.
                 await responseBody.CopyToAsync(originalBodyStream);
